@@ -28,4 +28,14 @@ export class EventsService {
       
     return snapshot.docs.map(doc => doc.data());
   }
+
+  async update(id: string, data: any) {
+    await this.firebaseService.db.collection(this.collection).doc(id).update(data);
+    return { id, ...data };
+  }
+
+  async delete(id: string) {
+    await this.firebaseService.db.collection(this.collection).doc(id).delete();
+    return { id };
+  }
 }

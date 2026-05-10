@@ -8,6 +8,7 @@ import { FirebaseModule } from './common/firebase.module';
 import { MoodsModule } from './modules/moods/moods.module';
 import { EventsModule } from './modules/events/events.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -19,7 +20,8 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     AuthModule,
     MoodsModule,
     EventsModule,
-    AnalyticsModule
+    AnalyticsModule,
+    NotificationsModule
   ],
   controllers: [AppController],
   providers: [AppService],

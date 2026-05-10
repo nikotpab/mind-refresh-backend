@@ -26,4 +26,14 @@ export class UsersService {
     await docRef.set(newUser);
     return newUser as User;
   }
+
+  async findById(id: string): Promise<User | null> {
+    const doc = await this.firebaseService.db.collection(this.collection).doc(id).get();
+    if (!doc.exists) return null;
+    return { id: doc.id, ...doc.data() } as User;
+  }
+
+  async update(id: string, data: Partial<User>): Promise<void> {
+    await this.firebaseService.db.collection(this.collection).doc(id).update(data);
+  }
 }

@@ -56,3 +56,9 @@ Thumbs.db
 *.ipr
 .angular/cache
 firebase-key.json
+
+# Debug and test files
+test-*.js
+debug-*.js
+dump-*.js
+EOF

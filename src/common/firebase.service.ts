@@ -36,6 +36,48 @@ export class FirebaseService implements OnModuleInit {
     }
     const storage = (global as any).mockFirestoreStorage;
 
+    class MockQuery {
+      constructor(private data: any[]) {}
+
+      where(field: string, op: string, value: any) {
+        let filtered = this.data;
+        if (op === '==') {
+          filtered = filtered.filter(d => d[field] === value);
+        } else if (op === '>=') {
+          filtered = filtered.filter(d => d[field] >= value);
+        } else if (op === '<=') {
+          filtered = filtered.filter(d => d[field] <= value);
+        } else if (op === '>') {
+          filtered = filtered.filter(d => d[field] > value);
+        } else if (op === '<') {
+          filtered = filtered.filter(d => d[field] < value);
+        }
+        return new MockQuery(filtered);
+      }
+
+      orderBy(field: string, direction: string = 'asc') {
+        const sorted = [...this.data].sort((a, b) => {
+          let valA = a[field];
+          let valB = b[field];
+          if (valA < valB) return direction === 'asc' ? -1 : 1;
+          if (valA > valB) return direction === 'asc' ? 1 : -1;
+          return 0;
+        });
+        return new MockQuery(sorted);
+      }
+
+      limit(n: number) {
+        return new MockQuery(this.data.slice(0, n));
+      }
+
+      async get() {
+        return {
+          empty: this.data.length === 0,
+          docs: this.data.map(r => ({ id: r.id, data: () => r }))
+        };
+      }
+    }
+
     const mockCollection = (colName: string) => {
       if (!storage.has(colName)) storage.set(colName, new Map());
       const col = storage.get(colName);
@@ -52,41 +94,28 @@ export class FirebaseService implements OnModuleInit {
             }),
             set: async (data: any) => {
               col.set(docId, { ...data, id: docId });
+            },
+            update: async (data: any) => {
+              const existing = col.get(docId) || {};
+              col.set(docId, { ...existing, ...data, id: docId });
+            },
+            delete: async () => {
+              col.delete(docId);
             }
           };
         },
-        where: (field: string, op: string, value: any) => ({
-          limit: (n: number) => ({
-            get: async () => {
-              const results = Array.from(col.values()).filter((d: any) => d[field] === value).slice(0, n);
-              return { empty: results.length === 0, docs: results.map((r: any) => ({ id: r.id, data: () => r })) };
-            }
-          }),
-          get: async () => {
-            const results = Array.from(col.values()).filter((d: any) => d[field] === value);
-            return { empty: results.length === 0, docs: results.map((r: any) => ({ id: r.id, data: () => r })) };
-          },
-          orderBy: () => ({
-            get: async () => {
-               const results = Array.from(col.values()).filter((d: any) => d[field] === value);
-               return { empty: results.length === 0, docs: results.map((r: any) => ({ id: r.id, data: () => r })) };
-            }
-          })
-        }),
-        get: async () => {
-          const results = Array.from(col.values());
-          return { empty: results.length === 0, docs: results.map((r: any) => ({ id: r.id, data: () => r })) };
+        where: (field: string, op: string, value: any) => {
+          return new MockQuery(Array.from(col.values())).where(field, op, value);
         },
-        orderBy: (field: string, direction: string = 'asc') => ({
-          get: async () => {
-            const results = Array.from(col.values()).sort((a: any, b: any) => {
-              if (a[field] < b[field]) return direction === 'asc' ? -1 : 1;
-              if (a[field] > b[field]) return direction === 'asc' ? 1 : -1;
-              return 0;
-            });
-            return { empty: results.length === 0, docs: results.map((r: any) => ({ id: r.id, data: () => r })) };
-          }
-        })
+        orderBy: (field: string, direction: string = 'asc') => {
+          return new MockQuery(Array.from(col.values())).orderBy(field, direction);
+        },
+        limit: (n: number) => {
+          return new MockQuery(Array.from(col.values())).limit(n);
+        },
+        get: async () => {
+          return new MockQuery(Array.from(col.values())).get();
+        }
       };
     };
 

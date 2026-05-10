@@ -27,7 +27,8 @@ export class AuthService {
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role
+        role: user.role,
+        photoUrl: user.photoUrl || '/default-avatar.png'
       }
     };
   }
@@ -47,7 +48,8 @@ export class AuthService {
       email,
       passwordHash,
       name,
-      role
+      role,
+      photoUrl: '/default-avatar.png'
     });
 
     const { passwordHash: _, ...result } = newUser;
