@@ -13,7 +13,7 @@ async function bootstrap() {
       email: 'admin@mindrefresh.com',
       password: 'Admin123Active!',
       name: 'Gerente Bienestar',
-      role: 'admin'
+      role: 'Administrador'
     });
     console.log('✅ Usuario Administrador creado: admin@mindrefresh.com');
 
@@ -21,7 +21,7 @@ async function bootstrap() {
       email: 'user@mindrefresh.com',
       password: 'User123Active!',
       name: 'Colaborador Demo',
-      role: 'colaborador'
+      role: 'Colaborador'
     });
     console.log('✅ Usuario Colaborador creado: user@mindrefresh.com');
 

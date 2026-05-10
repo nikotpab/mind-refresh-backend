@@ -22,9 +22,21 @@ export class AnalyticsService {
       }
     });
 
+    // Dummy data for strategic indicators requested in RTF
     return {
       totalRecords: moods.length,
-      summary
+      summary,
+      participationRate: 75, // 75% participation
+      talentEfficiency: {
+        current: 55,
+        target: 70
+      },
+      departmentMoodHeatmap: {
+        'Tecnología': 4.2,
+        'Recursos Humanos': 3.8,
+        'Ventas': 2.9,
+        'Operaciones': 3.5
+      }
     };
   }
 }

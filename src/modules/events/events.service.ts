@@ -20,20 +20,25 @@ export class EventsService {
       title: data.title,
       description: data.description,
       date: data.date,
+      facilitator: data.facilitator || null,
+      targetDepartment: data.targetDepartment || null,
       createdBy: data.createdBy,
       createdAt: new Date(),
     };
     await docRef.set(eventRecord);
 
-    // Notify all users about the general event
+    // Notify users about the general event or targeted department event
     const users = await this.usersService.findAll();
     for (const user of users) {
       if (user.id !== data.createdBy) {
-        await this.notificationsService.create(user.id, {
-          title: 'Nuevo Evento: ' + data.title,
-          message: 'Se ha publicado un nuevo evento que podría interesarte.',
-          type: 'EVENT_GENERAL'
-        });
+        // If targetDepartment is specified, only notify users in that department
+        if (!data.targetDepartment || user.department === data.targetDepartment) {
+          await this.notificationsService.create(user.id, {
+            title: 'Nuevo Evento: ' + data.title,
+            message: 'Se ha publicado un nuevo evento que podría interesarte.',
+            type: 'EVENT_GENERAL'
+          });
+        }
       }
     }
 
