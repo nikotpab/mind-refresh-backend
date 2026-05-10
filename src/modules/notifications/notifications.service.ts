@@ -24,10 +24,10 @@ export class NotificationsService {
       const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
       const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
       return dateB.getTime() - dateA.getTime();
-    });
-    
-    return docs;
-  }
+      });
+
+      return docs;
+      }
 
   async markAsRead(notificationId: string) {
     await this.firebaseService.db
@@ -35,6 +35,34 @@ export class NotificationsService {
       .doc(notificationId)
       .update({ read: true });
     return { success: true };
+  }
+
+  async create(userId: string, data: any) {
+    const docRef = this.firebaseService.db.collection(this.collection).doc();
+    const notification = {
+      id: docRef.id,
+      userId,
+      title: data.title,
+      message: data.message,
+      type: data.type || 'GENERAL',
+      read: false,
+      createdAt: new Date(),
+      senderName: data.senderName || null
+    };
+    await docRef.set(notification);
+    
+    // Real-time notification
+    this.notificationsGateway.sendNotificationToUser(userId, notification);
+    
+    return notification;
+  }
+
+  async createByEmail(email: string, data: any) {
+    const user = await this.usersService.findByEmail(email);
+    if (!user) {
+      throw new NotFoundException(`User with email ${email} not found`);
+    }
+    return this.create(user.id, data);
   }
 
   async shareQuote(senderId: string, email: string, quote: string, title: string) {
