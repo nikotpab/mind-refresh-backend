@@ -55,3 +55,4 @@ Thumbs.db
 *.iws
 *.ipr
 .angular/cache
+firebase-key.json
