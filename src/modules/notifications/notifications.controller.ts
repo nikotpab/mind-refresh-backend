@@ -1,25 +1,25 @@
-import { Controller, Get, Post, Body, Req, UseGuards, Put, Param } from '@nestjs/common';
+import { Controller, Get, Post, Body, Put, Param, UseGuards, Request } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { AuthGuard } from '../auth/auth.guard';
 
-@UseGuards(AuthGuard)
 @Controller('notifications')
+@UseGuards(AuthGuard)
 export class NotificationsController {
-  constructor(private readonly notificationsService: NotificationsService) {}
+  constructor(private notificationsService: NotificationsService) {}
 
   @Get()
-  async getNotifications(@Req() req: any) {
-    return this.notificationsService.findByUserId(req.user.sub);
+  async getNotifications(@Request() req) {
+    return this.notificationsService.getNotifications(req.user.sub);
   }
 
   @Post('share')
-  async share(@Body() shareDto: any, @Req() req: any) {
-    return this.notificationsService.createByEmail(shareDto.email, {
-      title: shareDto.title || 'Alguien compartió contigo',
-      message: shareDto.message,
-      type: shareDto.type || 'QUOTE_SHARED',
-      senderName: req.user.name
-    });
+  async shareQuote(@Request() req, @Body() body: any) {
+    return this.notificationsService.shareQuote(
+      req.user.sub,
+      body.email,
+      body.message,
+      body.title,
+    );
   }
 
   @Put(':id/read')

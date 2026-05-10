@@ -22,7 +22,12 @@ export class UsersService {
 
   async create(user: Partial<User>): Promise<User> {
     const docRef = this.firebaseService.db.collection(this.collection).doc();
-    const newUser = { id: docRef.id, ...user };
+    const newUser = { 
+      ...user,
+      id: docRef.id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
     await docRef.set(newUser);
     return newUser as User;
   }
