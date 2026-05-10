@@ -1,21 +1,17 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
+import { AnalyticsService } from './analytics.service';
 import { AuthGuard } from '../auth/auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
-import { Role } from '../../common/enums/role.enum';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
 
-@Controller('analytics')
 @UseGuards(AuthGuard, RolesGuard)
+@Controller('analytics')
 export class AnalyticsController {
-  @Get('strategic')
-  @Roles(Role.Admin, Role.Leader)
-  getStrategicData() {
-    return {
-      message: 'This is sensitive strategic data, accessible only by Leaders and Admins.',
-      data: [
-        { metric: 'Productivity', value: 85 },
-        { metric: 'Emotional Wellbeing', value: 72 },
-      ],
-    };
+  constructor(private readonly analyticsService: AnalyticsService) {}
+
+  @Get('team-mood')
+  @Roles('admin', 'lider')
+  async getTeamMood() {
+    return this.analyticsService.getTeamMoodAnalytics();
   }
 }
