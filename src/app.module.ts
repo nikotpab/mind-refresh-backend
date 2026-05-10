@@ -4,8 +4,10 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { FirebaseModule } from './common/firebase.module';
+import { MoodsModule } from './modules/moods/moods.module';
+import { EventsModule } from './modules/events/events.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
-import { FirebaseModule } from './modules/firebase/firebase.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
@@ -16,8 +18,10 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     FirebaseModule,
     UsersModule,
     AuthModule,
+    MoodsModule,
+    EventsModule,
     AnalyticsModule,
-    NotificationsModule,
+    NotificationsModule
   ],
   controllers: [AppController],
   providers: [AppService],

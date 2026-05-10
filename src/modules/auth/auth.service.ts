@@ -27,7 +27,8 @@ export class AuthService {
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role
+        role: user.role,
+        photoUrl: user.photoUrl || '/default-avatar.png'
       }
     };
   }
@@ -35,7 +36,6 @@ export class AuthService {
   async register(data: any) {
     const { email, password, name, role } = data;
     
-    // Check if user exists
     const existingUser = await this.usersService.findByEmail(email);
     if (existingUser) {
       throw new ConflictException('Email already exists');
@@ -48,7 +48,8 @@ export class AuthService {
       email,
       passwordHash,
       name,
-      role
+      role,
+      photoUrl: '/default-avatar.png'
     });
 
     const { passwordHash: _, ...result } = newUser;

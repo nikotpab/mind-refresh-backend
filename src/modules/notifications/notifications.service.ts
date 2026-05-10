@@ -1,11 +1,11 @@
 import { Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
-import { FirebaseService } from '../firebase/firebase.service';
+import { FirebaseService } from '../../common/firebase.service';
 import { NotificationsGateway } from './notifications.gateway';
 import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class NotificationsService {
-  private collectionName = 'notifications';
+  private collection = 'notifications';
 
   constructor(
     private firebaseService: FirebaseService,
@@ -15,17 +15,23 @@ export class NotificationsService {
 
   async getNotifications(userId: string) {
     const snapshot = await this.firebaseService.db
-      .collection(this.collectionName)
+      .collection(this.collection)
       .where('userId', '==', userId)
-      .orderBy('createdAt', 'desc')
       .get();
 
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    let docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    docs.sort((a, b) => {
+      const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
+      const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
+      return dateB.getTime() - dateA.getTime();
+    });
+    
+    return docs;
   }
 
   async markAsRead(notificationId: string) {
     await this.firebaseService.db
-      .collection(this.collectionName)
+      .collection(this.collection)
       .doc(notificationId)
       .update({ read: true });
     return { success: true };
@@ -41,7 +47,6 @@ export class NotificationsService {
       }
 
       const sender = await this.usersService.findById(senderId);
-      console.log(`Found sender: ${sender?.name}, recipient: ${recipient.name}`);
 
       const notification = {
         userId: recipient.id,
@@ -53,16 +58,13 @@ export class NotificationsService {
       };
 
       const docRef = await this.firebaseService.db
-        .collection(this.collectionName)
+        .collection(this.collection)
         .add(notification);
-
-      console.log(`Notification saved with ID: ${docRef.id}`);
 
       const finalNotification = { id: docRef.id, ...notification };
       
       // Enviar via Socket.io para actualización en tiempo real
       this.notificationsGateway.sendNotificationToUser(recipient.id, finalNotification);
-      console.log(`Notification sent via Socket to user ${recipient.id}`);
 
       return finalNotification;
     } catch (error) {

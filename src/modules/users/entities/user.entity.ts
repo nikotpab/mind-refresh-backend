@@ -1,11 +1,10 @@
-import { Role } from '../../../common/enums/role.enum';
-
 export class User {
   id: string;
   email: string;
+  name: string;
   passwordHash: string;
-  name?: string;
-  role: Role;
+  role: string;
+  photoUrl?: string;
   createdAt: Date;
   updatedAt: Date;
 }

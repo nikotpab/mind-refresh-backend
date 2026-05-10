@@ -12,11 +12,6 @@ export class NotificationsController {
     return this.notificationsService.getNotifications(req.user.sub);
   }
 
-  @Put(':id/read')
-  async markAsRead(@Param('id') id: string) {
-    return this.notificationsService.markAsRead(id);
-  }
-
   @Post('share')
   async shareQuote(@Request() req, @Body() body: any) {
     return this.notificationsService.shareQuote(
@@ -25,5 +20,10 @@ export class NotificationsController {
       body.message,
       body.title,
     );
+  }
+
+  @Put(':id/read')
+  async markAsRead(@Param('id') id: string) {
+    return this.notificationsService.markAsRead(id);
   }
 }
