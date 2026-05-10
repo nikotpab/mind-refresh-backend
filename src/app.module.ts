@@ -5,6 +5,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { User } from './modules/users/entities/user.entity';
 
 @Module({
@@ -28,6 +29,7 @@ import { User } from './modules/users/entities/user.entity';
     }),
     UsersModule,
     AuthModule,
+    AnalyticsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
