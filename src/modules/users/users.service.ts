@@ -33,6 +33,11 @@ export class UsersService {
     return { id: doc.id, ...doc.data() } as User;
   }
 
+  async findAll(): Promise<User[]> {
+    const snapshot = await this.firebaseService.db.collection(this.collection).get();
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as User[];
+  }
+
   async update(id: string, data: Partial<User>): Promise<void> {
     await this.firebaseService.db.collection(this.collection).doc(id).update(data);
   }
