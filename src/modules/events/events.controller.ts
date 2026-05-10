@@ -23,6 +23,11 @@ export class EventsController {
     return this.eventsService.findAll();
   }
 
+  @Post(':id/invite')
+  async inviteToEvent(@Param('id') id: string, @Body() inviteDto: any, @Req() req: any) {
+    return this.eventsService.invite(id, inviteDto.email, req.user.name);
+  }
+
   @Put(':id')
   @Roles('Administrador', 'Líder')
   async updateEvent(@Param('id') id: string, @Body() updateEventDto: any) {
