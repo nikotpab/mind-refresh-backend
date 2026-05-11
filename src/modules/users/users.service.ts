@@ -47,23 +47,4 @@ export class UsersService {
   async update(id: string, data: Partial<User>): Promise<void> {
     await this.firebaseService.db.collection(this.collection).doc(id).update(data);
   }
-
-  async toggleSavedEvent(userId: string, eventId: string): Promise<string[]> {
-    const userRef = this.firebaseService.db.collection(this.collection).doc(userId);
-    const userDoc = await userRef.get();
-    
-    if (!userDoc.exists) return [];
-    
-    const user = userDoc.data();
-    let savedEvents = user.savedEvents || [];
-    
-    if (savedEvents.includes(eventId)) {
-      savedEvents = savedEvents.filter((id: string) => id !== eventId);
-    } else {
-      savedEvents.push(eventId);
-    }
-    
-    await userRef.update({ savedEvents });
-    return savedEvents;
-  }
 }

@@ -6,7 +6,6 @@ export class User {
   role: string;
   department?: string;
   photoUrl?: string;
-  savedEvents?: string[];
   createdAt: Date;
   updatedAt: Date;
 }

@@ -65,17 +65,6 @@ export class EventsController {
     }
   }
 
-  @Post(':id/save')
-  @UseGuards(AuthGuard)
-  async toggleSaveEvent(@Param('id') id: string, @Req() req: any, @Res() res: Response) {
-    try {
-      const savedEvents = await this.eventsService.toggleSave(id, req.user.sub);
-      return res.status(200).json({ savedEvents });
-    } catch (error: any) {
-      return res.status(500).json({ message: error.message });
-    }
-  }
-
   @Put(':id')
   @UseGuards(AuthGuard, RolesGuard)
   @Roles('Administrador', 'Líder')

@@ -119,9 +119,4 @@ export class EventsService {
     await this.firebaseService.db.collection(this.collection).doc(id).delete();
     return { id };
   }
-
-  async toggleSave(eventId: string, userId: string): Promise<string[]> {
-    console.log(`[EventsService] Toggling save for event ${eventId} and user ${userId}`);
-    return this.usersService.toggleSavedEvent(userId, eventId);
-  }
 }
