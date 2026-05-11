@@ -19,15 +19,21 @@ export class NotificationsService {
       .where('userId', '==', userId)
       .get();
 
-    let docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    docs.sort((a, b) => {
-      const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
-      const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
-      return dateB.getTime() - dateA.getTime();
-      });
+    let docs = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 
-      return docs;
-      }
+    const parseDate = (date: any) => {
+      if (!date) return 0;
+      if (date.toDate && typeof date.toDate === 'function') return date.toDate().getTime();
+      if (date instanceof Date) return date.getTime();
+      if (typeof date === 'string' || typeof date === 'number') return new Date(date).getTime();
+      if (date.seconds) return date.seconds * 1000;
+      return 0;
+    };
+
+    docs.sort((a, b) => parseDate(b.createdAt) - parseDate(a.createdAt));
+
+    return docs;
+  }
 
   async markAsRead(notificationId: string) {
     await this.firebaseService.db
@@ -47,13 +53,13 @@ export class NotificationsService {
       type: data.type || 'GENERAL',
       read: false,
       createdAt: new Date(),
-      senderName: data.senderName || null
+      senderName: data.senderName || null,
     };
     await docRef.set(notification);
-    
+
     // Real-time notification
     this.notificationsGateway.sendNotificationToUser(userId, notification);
-    
+
     return notification;
   }
 
@@ -65,18 +71,27 @@ export class NotificationsService {
     return this.create(user.id, data);
   }
 
-  async shareQuote(senderId: string, email: string, quote: string, title: string) {
+  async shareQuote(
+    senderId: string,
+    email: string,
+    quote: string,
+    title: string,
+  ) {
     console.log(`Attempting to share quote from ${senderId} to ${email}`);
     try {
       const recipient = await this.usersService.findByEmail(email);
       if (!recipient) {
         console.warn(`Recipient not found for email: ${email}`);
-        throw new NotFoundException('Destinatario no encontrado. Verifique el correo.');
+        throw new NotFoundException(
+          'Destinatario no encontrado. Verifique el correo.',
+        );
       }
 
       const sender = await this.usersService.findById(senderId);
+      const docRef = this.firebaseService.db.collection(this.collection).doc();
 
       const notification = {
+        id: docRef.id,
         userId: recipient.id,
         title: title,
         message: `${sender?.name || 'Un compañero'} te ha enviado una frase: "${quote}"`,
@@ -85,20 +100,21 @@ export class NotificationsService {
         createdAt: new Date(),
       };
 
-      const docRef = await this.firebaseService.db
-        .collection(this.collection)
-        .add(notification);
+      await docRef.set(notification);
 
-      const finalNotification = { id: docRef.id, ...notification };
-      
       // Enviar via Socket.io para actualización en tiempo real
-      this.notificationsGateway.sendNotificationToUser(recipient.id, finalNotification);
+      this.notificationsGateway.sendNotificationToUser(
+        recipient.id,
+        notification,
+      );
 
-      return finalNotification;
+      return notification;
     } catch (error) {
       console.error('Error in shareQuote:', error);
       if (error instanceof NotFoundException) throw error;
-      throw new InternalServerErrorException('Error al procesar el envío de la frase');
+      throw new InternalServerErrorException(
+        'Error al procesar el envío de la frase',
+      );
     }
   }
 }

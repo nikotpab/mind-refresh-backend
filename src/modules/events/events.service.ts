@@ -50,7 +50,7 @@ export class EventsService {
   async invite(eventId: string, email: string, senderName: string) {
     const eventDoc = await this.firebaseService.db.collection(this.collection).doc(eventId).get();
     const event = eventDoc.data();
-    const finalSenderName = senderName || 'Un compañero';
+    const finalSenderName = (senderName && senderName !== 'undefined') ? senderName : 'Un compañero';
     
     return this.notificationsService.createByEmail(email, {
       title: 'Has sido invitado a un evento',
