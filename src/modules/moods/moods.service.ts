@@ -43,7 +43,8 @@ export class MoodsService {
           }
         }
       } catch (e) {
-        console.error('Error parsing date for record:', data.id, e.message);
+        const message = e instanceof Error ? e.message : String(e);
+        console.error('Error parsing date for record:', data.id, message);
       }
       return { ...data, createdAt: isoDate };
     });
@@ -97,7 +98,8 @@ export class MoodsService {
           }
         }
       } catch (e) {
-        console.error('Error parsing date for record:', data.id, e.message);
+        const message = e instanceof Error ? e.message : String(e);
+        console.error('Error parsing date for record:', data.id, message);
       }
       return { ...data, createdAt: isoDate };
     });
