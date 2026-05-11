@@ -1,8 +1,10 @@
-import { Controller, Get, Body, Put, Req, UseGuards, NotFoundException, Param } from '@nestjs/common';
+import { Controller, Get, Body, Put, Req, UseGuards, NotFoundException, Param, Query } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { AuthGuard } from '../auth/auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import { UserResponseDto } from './dto/user-response.dto';
+import { plainToInstance } from 'class-transformer';
 
 @UseGuards(AuthGuard)
 @Controller('users')
@@ -12,8 +14,9 @@ export class UsersController {
   @Get()
   @UseGuards(RolesGuard)
   @Roles('Administrador', 'Líder')
-  async findAll() {
-    return this.usersService.findAll();
+  async findAll(@Query('limit') limit?: number, @Query('lastId') lastId?: string) {
+    const users = await this.usersService.findAll(limit ? Number(limit) : 20, lastId);
+    return users.map(user => plainToInstance(UserResponseDto, user));
   }
 
   @Get('profile')
@@ -22,8 +25,7 @@ export class UsersController {
     if (!user) {
       throw new NotFoundException('User not found');
     }
-    const { passwordHash, ...result } = user;
-    return result;
+    return plainToInstance(UserResponseDto, user);
   }
 
   @Put('profile')

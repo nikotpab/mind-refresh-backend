@@ -1,22 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import { FirebaseService } from '../../common/firebase.service';
+import { EventRepository } from './event.repository';
 import { NotificationsService } from '../notifications/notifications.service';
 import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class EventsService {
-  private collection = 'events';
-
   constructor(
-    private firebaseService: FirebaseService,
+    private eventRepository: EventRepository,
     private notificationsService: NotificationsService,
     private usersService: UsersService
   ) {}
 
   async create(data: any) {
-    const docRef = this.firebaseService.db.collection(this.collection).doc();
-    const eventRecord = {
-      id: docRef.id,
+    const eventRecord = await this.eventRepository.create({
       title: data.title,
       description: data.description,
       date: data.date,
@@ -25,9 +21,7 @@ export class EventsService {
       location: data.location || 'Virtual',
       targetDepartment: data.targetDepartment || null,
       createdBy: data.createdBy,
-      createdAt: new Date(),
-    };
-    await docRef.set(eventRecord);
+    });
 
     // Notify users about the general event or targeted department event (Async and Parallel)
     this.usersService.findAll().then(users => {
@@ -48,8 +42,9 @@ export class EventsService {
   }
 
   async invite(eventId: string, email: string, senderName: string) {
-    const eventDoc = await this.firebaseService.db.collection(this.collection).doc(eventId).get();
-    const event = eventDoc.data();
+    const event = await this.eventRepository.findById(eventId);
+    if (!event) throw new Error('Evento no encontrado');
+    
     const finalSenderName = (senderName && senderName !== 'undefined') ? senderName : 'Un compañero';
     
     return this.notificationsService.createByEmail(email, {
@@ -60,12 +55,8 @@ export class EventsService {
     });
   }
 
-  async findAll() {
-    const snapshot = await this.firebaseService.db
-      .collection(this.collection)
-      .get();
-      
-    const events = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  async findAll(limit: number = 20, lastId?: string) {
+    const events = await this.eventRepository.findAll(limit, lastId);
     
     // Sort by date (newest first)
     events.sort((a, b) => {
@@ -79,15 +70,13 @@ export class EventsService {
 
   async enroll(eventId: string, userId: string) {
     console.log(`--- Enrollment attempt: Event ${eventId} for User ${userId} ---`);
-    const eventRef = this.firebaseService.db.collection(this.collection).doc(eventId);
-    const eventDoc = await eventRef.get();
+    const event = await this.eventRepository.findById(eventId);
     
-    if (!eventDoc.exists) {
+    if (!event) {
       console.warn('Event not found:', eventId);
       throw new Error('Evento no encontrado');
     }
 
-    const event = eventDoc.data();
     const participants = event.participants || [];
 
     if (participants.includes(userId)) {
@@ -96,7 +85,7 @@ export class EventsService {
     }
 
     participants.push(userId);
-    await eventRef.update({ participants });
+    await this.eventRepository.update(eventId, { participants });
     console.log('Firebase updated successfully');
 
     // Create a notification for the user (async)
@@ -111,12 +100,12 @@ export class EventsService {
   }
 
   async update(id: string, data: any) {
-    await this.firebaseService.db.collection(this.collection).doc(id).update(data);
+    await this.eventRepository.update(id, data);
     return { id, ...data };
   }
 
   async delete(id: string) {
-    await this.firebaseService.db.collection(this.collection).doc(id).delete();
+    await this.eventRepository.delete(id);
     return { id };
   }
 }

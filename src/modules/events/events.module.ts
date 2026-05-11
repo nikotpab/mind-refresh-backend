@@ -4,11 +4,13 @@ import { EventsService } from './events.service';
 import { AuthModule } from '../auth/auth.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { UsersModule } from '../users/users.module';
+import { EventRepository } from './event.repository';
+import { FirebaseModule } from '../../common/firebase.module';
 
 @Module({
-  imports: [AuthModule, NotificationsModule, UsersModule],
+  imports: [FirebaseModule, AuthModule, NotificationsModule, UsersModule],
   controllers: [EventsController],
-  providers: [EventsService],
-  exports: [EventsService]
+  providers: [EventsService, EventRepository],
+  exports: [EventsService, EventRepository]
 })
 export class EventsModule {}

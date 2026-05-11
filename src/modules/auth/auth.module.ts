@@ -11,6 +11,20 @@ import { UsersModule } from '../users/users.module';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => {
+        const privateKey = configService.get<string>('JWT_PRIVATE_KEY');
+        const publicKey = configService.get<string>('JWT_PUBLIC_KEY');
+        
+        if (privateKey && publicKey) {
+          return {
+            privateKey: privateKey.replace(/\\n/g, '\n'),
+            publicKey: publicKey.replace(/\\n/g, '\n'),
+            signOptions: { 
+              expiresIn: configService.get<string>('JWT_EXPIRATION', '1d') as any,
+              algorithm: 'RS256',
+            },
+          };
+        }
+
         const secret = configService.get<string>('JWT_SECRET');
         if (!secret) {
           throw new Error('JWT_SECRET is not defined in the environment variables');
@@ -18,7 +32,8 @@ import { UsersModule } from '../users/users.module';
         return {
           secret: secret,
           signOptions: { 
-            expiresIn: configService.get<string>('JWT_EXPIRATION', '1d') as any
+            expiresIn: configService.get<string>('JWT_EXPIRATION', '1d') as any,
+            algorithm: 'HS256',
           },
         };
       },

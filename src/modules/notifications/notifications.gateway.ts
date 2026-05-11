@@ -6,6 +6,8 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 
 @WebSocketGateway({
   cors: {
@@ -20,14 +22,46 @@ export class NotificationsGateway
 
   private userSockets = new Map<string, Set<string>>();
 
+  constructor(
+    private jwtService: JwtService,
+    private configService: ConfigService
+  ) {}
+
   handleConnection(client: Socket) {
-    const userId = client.handshake.query.userId as string;
-    if (userId) {
-      if (!this.userSockets.has(userId)) {
-        this.userSockets.set(userId, new Set());
+    try {
+      // Parse cookies
+      let cookieToken;
+      if (client.handshake.headers.cookie) {
+        const cookies = client.handshake.headers.cookie.split(';').map(c => c.trim());
+        const accessCookie = cookies.find(c => c.startsWith('access_token='));
+        if (accessCookie) {
+          cookieToken = accessCookie.split('=')[1];
+        }
       }
-      this.userSockets.get(userId).add(client.id);
-      console.log(`User ${userId} connected with socket ${client.id}. Total sockets for user: ${this.userSockets.get(userId).size}`);
+
+      const authHeader = client.handshake.headers['authorization'];
+      const token = cookieToken || client.handshake.auth?.token || (authHeader && authHeader.split(' ')[1]);
+      
+      if (!token) {
+        throw new Error('No token provided');
+      }
+
+      const payload = this.jwtService.verify(token);
+      
+      const userId = payload.sub || payload.id || client.handshake.query.userId;
+      
+      if (userId) {
+        if (!this.userSockets.has(userId)) {
+          this.userSockets.set(userId, new Set());
+        }
+        this.userSockets.get(userId).add(client.id);
+        console.log(`User ${userId} connected with socket ${client.id}. Total sockets for user: ${this.userSockets.get(userId).size}`);
+      } else {
+        throw new Error('Invalid user id in token');
+      }
+    } catch (err) {
+      console.warn(`WebSocket connection failed: ${err.message}`);
+      client.disconnect();
     }
   }
 

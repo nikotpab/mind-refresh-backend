@@ -17,22 +17,12 @@ export class AuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const token = this.extractTokenFromHeader(request);
+    const token = this.extractTokenFromHeaderOrCookie(request);
     if (!token) {
       throw new UnauthorizedException();
     }
     try {
-      const secret = this.configService.get<string>('JWT_SECRET');
-      if (!secret) {
-        throw new Error('JWT_SECRET is not defined in the environment variables');
-      }
-      
-      const payload = await this.jwtService.verifyAsync(
-        token,
-        {
-          secret: secret
-        }
-      );
+      const payload = await this.jwtService.verifyAsync(token);
       request['user'] = payload;
     } catch {
       throw new UnauthorizedException();
@@ -40,7 +30,11 @@ export class AuthGuard implements CanActivate {
     return true;
   }
 
-  private extractTokenFromHeader(request: Request): string | undefined {
+  private extractTokenFromHeaderOrCookie(request: Request): string | undefined {
+    const tokenFromCookie = request.cookies?.access_token;
+    if (tokenFromCookie) {
+      return tokenFromCookie;
+    }
     const [type, token] = request.headers.authorization?.split(' ') ?? [];
     return type === 'Bearer' ? token : undefined;
   }
