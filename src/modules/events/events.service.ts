@@ -29,20 +29,20 @@ export class EventsService {
     };
     await docRef.set(eventRecord);
 
-    // Notify users about the general event or targeted department event
-    const users = await this.usersService.findAll();
-    for (const user of users) {
-      if (user.id !== data.createdBy) {
-        // If targetDepartment is specified, only notify users in that department
-        if (!data.targetDepartment || user.department === data.targetDepartment) {
-          await this.notificationsService.create(user.id, {
-            title: 'Nuevo Evento: ' + data.title,
-            message: 'Se ha publicado un nuevo evento que podría interesarte.',
-            type: 'EVENT_GENERAL'
-          });
-        }
-      }
-    }
+    // Notify users about the general event or targeted department event (Async and Parallel)
+    this.usersService.findAll().then(users => {
+      const notifications = users
+        .filter(user => user.id !== data.createdBy)
+        .filter(user => !data.targetDepartment || user.department === data.targetDepartment)
+        .map(user => this.notificationsService.create(user.id, {
+          title: 'Nuevo Evento: ' + data.title,
+          message: 'Se ha publicado un nuevo evento que podría interesarte.',
+          type: 'EVENT_GENERAL'
+        }).catch(e => console.error(`Error notifying user ${user.id}:`, e)));
+      
+      return Promise.all(notifications);
+    }).then(() => console.log(`[EventsService] All notifications for event "${data.title}" processed.`))
+      .catch(err => console.error('[EventsService] Error in background notifications:', err));
 
     return eventRecord;
   }
@@ -118,5 +118,10 @@ export class EventsService {
   async delete(id: string) {
     await this.firebaseService.db.collection(this.collection).doc(id).delete();
     return { id };
+  }
+
+  async toggleSave(eventId: string, userId: string): Promise<string[]> {
+    console.log(`[EventsService] Toggling save for event ${eventId} and user ${userId}`);
+    return this.usersService.toggleSavedEvent(userId, eventId);
   }
 }
