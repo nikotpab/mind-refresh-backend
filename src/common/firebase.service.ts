@@ -10,13 +10,22 @@ export class FirebaseService implements OnModuleInit {
   onModuleInit() {
     try {
       if (!admin.apps.length) {
-        const serviceAccountPath = path.join(process.cwd(), 'firebase-key.json');
-        admin.initializeApp({
-          credential: admin.credential.cert(serviceAccountPath),
-        });
+        if (process.env.FIREBASE_CREDENTIALS_BASE64) {
+          const serviceAccount = JSON.parse(Buffer.from(process.env.FIREBASE_CREDENTIALS_BASE64, 'base64').toString('ascii'));
+          admin.initializeApp({
+            credential: admin.credential.cert(serviceAccount),
+          });
+          console.log('✅ Firebase Admin initialized with base64 credentials');
+        } else {
+          // Fallback to local file for development if base64 is not provided
+          const serviceAccountPath = path.join(process.cwd(), 'firebase-key.json');
+          admin.initializeApp({
+            credential: admin.credential.cert(serviceAccountPath),
+          });
+          console.warn('⚠️ Firebase Admin initialized with local firebase-key.json. Consider using FIREBASE_CREDENTIALS_BASE64 env var for production.');
+        }
       }
       this.firestore = admin.firestore();
-      console.log('✅ Firebase Admin initialized with real credentials');
     } catch (error) {
       console.error('⚠️ Real Firebase initialization failed. Switching to MOCK mode.');
       console.error(error);

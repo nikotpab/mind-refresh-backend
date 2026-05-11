@@ -22,10 +22,15 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException();
     }
     try {
+      const secret = this.configService.get<string>('JWT_SECRET');
+      if (!secret) {
+        throw new Error('JWT_SECRET is not defined in the environment variables');
+      }
+      
       const payload = await this.jwtService.verifyAsync(
         token,
         {
-          secret: this.configService.get<string>('JWT_SECRET', 'super_secret_mind_refresh_key_2026')
+          secret: secret
         }
       );
       request['user'] = payload;

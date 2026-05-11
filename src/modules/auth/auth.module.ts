@@ -10,12 +10,18 @@ import { UsersModule } from '../users/users.module';
     forwardRef(() => UsersModule),
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET', 'super_secret_mind_refresh_key_2026'),
-        signOptions: { 
-          expiresIn: configService.get<string>('JWT_EXPIRATION', '1d') as any
-        },
-      }),
+      useFactory: async (configService: ConfigService) => {
+        const secret = configService.get<string>('JWT_SECRET');
+        if (!secret) {
+          throw new Error('JWT_SECRET is not defined in the environment variables');
+        }
+        return {
+          secret: secret,
+          signOptions: { 
+            expiresIn: configService.get<string>('JWT_EXPIRATION', '1d') as any
+          },
+        };
+      },
       inject: [ConfigService],
     }),
   ],
