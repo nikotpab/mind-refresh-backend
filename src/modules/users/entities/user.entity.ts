@@ -4,6 +4,7 @@ export class User {
   name: string;
   passwordHash: string;
   role: string;
+  department?: string;
   photoUrl?: string;
   createdAt: Date;
   updatedAt: Date;

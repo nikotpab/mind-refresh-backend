@@ -21,6 +21,8 @@ export class EventsService {
       description: data.description,
       date: data.date,
       facilitator: data.facilitator || null,
+      resources: data.resources || [],
+      location: data.location || 'Virtual',
       targetDepartment: data.targetDepartment || null,
       createdBy: data.createdBy,
       createdAt: new Date(),
@@ -48,12 +50,13 @@ export class EventsService {
   async invite(eventId: string, email: string, senderName: string) {
     const eventDoc = await this.firebaseService.db.collection(this.collection).doc(eventId).get();
     const event = eventDoc.data();
+    const finalSenderName = senderName || 'Un compañero';
     
     return this.notificationsService.createByEmail(email, {
       title: 'Has sido invitado a un evento',
-      message: `${senderName} te ha invitado al evento: ${event.title}`,
+      message: `${finalSenderName} te ha invitado al evento: ${event.title}`,
       type: 'EVENT_INVITATION',
-      senderName
+      senderName: finalSenderName
     });
   }
 
@@ -62,7 +65,49 @@ export class EventsService {
       .collection(this.collection)
       .get();
       
-    return snapshot.docs.map(doc => doc.data());
+    const events = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    
+    // Sort by date (newest first)
+    events.sort((a, b) => {
+      const dateA = a.date ? new Date(a.date).getTime() : 0;
+      const dateB = b.date ? new Date(b.date).getTime() : 0;
+      return dateB - dateA;
+    });
+
+    return events;
+  }
+
+  async enroll(eventId: string, userId: string) {
+    console.log(`--- Enrollment attempt: Event ${eventId} for User ${userId} ---`);
+    const eventRef = this.firebaseService.db.collection(this.collection).doc(eventId);
+    const eventDoc = await eventRef.get();
+    
+    if (!eventDoc.exists) {
+      console.warn('Event not found:', eventId);
+      throw new Error('Evento no encontrado');
+    }
+
+    const event = eventDoc.data();
+    const participants = event.participants || [];
+
+    if (participants.includes(userId)) {
+      console.log('User already enrolled:', userId);
+      return { message: 'Ya estás inscrito en este evento', alreadyEnrolled: true };
+    }
+
+    participants.push(userId);
+    await eventRef.update({ participants });
+    console.log('Firebase updated successfully');
+
+    // Create a notification for the user (async)
+    this.notificationsService.create(userId, {
+      title: 'Inscripción Exitosa',
+      message: `Te has inscrito correctamente al evento: ${event.title}`,
+      type: 'EVENT_REGISTRATION'
+    }).catch(e => console.error('Silent error sending notification:', e));
+
+    console.log('Enrollment successful, returning response');
+    return { message: 'Inscripción exitosa', alreadyEnrolled: false };
   }
 
   async update(id: string, data: any) {
