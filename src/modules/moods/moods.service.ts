@@ -1,23 +1,18 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { FirebaseService } from '../../common/firebase.service';
+import { MoodRepository } from './mood.repository';
 
 @Injectable()
 export class MoodsService {
-  private collection = 'moods';
-
-  constructor(private firebaseService: FirebaseService) {}
+  constructor(private moodRepository: MoodRepository) {}
 
   async create(userId: string, data: any) {
     // Validate: only one check-in per day
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
 
-    const snapshot = await this.firebaseService.db
-      .collection(this.collection)
-      .where('userId', '==', userId)
-      .get();
+    const allUserMoods = await this.moodRepository.findByUserId(userId);
       
-    const todayMoods = snapshot.docs.map(doc => doc.data()).filter(m => {
+    const todayMoods = allUserMoods.filter(m => {
       const d = m.createdAt?.toDate ? m.createdAt.toDate() : new Date(m.createdAt);
       return d >= startOfDay;
     });
@@ -26,26 +21,19 @@ export class MoodsService {
       throw new BadRequestException('Ya has realizado tu check-in emocional el día de hoy.');
     }
 
-    const docRef = this.firebaseService.db.collection(this.collection).doc();
     const moodRecord = {
-      id: docRef.id,
       userId,
       emotion: data.emotion,
       notes: data.notes || '',
-      createdAt: new Date(),
     };
-    await docRef.set(moodRecord);
-    return moodRecord;
+    
+    return this.moodRepository.create(moodRecord);
   }
 
   async findByUserId(userId: string) {
-    const snapshot = await this.firebaseService.db
-      .collection(this.collection)
-      .where('userId', '==', userId)
-      .get();
+    const moods = await this.moodRepository.findByUserId(userId);
       
-    return snapshot.docs.map(doc => {
-      const data = doc.data();
+    return moods.map(data => {
       let isoDate = new Date().toISOString();
       try {
         if (data.createdAt) {
@@ -56,7 +44,7 @@ export class MoodsService {
         }
       } catch (e) {
         const message = e instanceof Error ? e.message : String(e);
-        console.error('Error parsing date for record:', doc.id, message);
+        console.error('Error parsing date for record:', data.id, message);
       }
       return { ...data, createdAt: isoDate };
     });
@@ -67,13 +55,7 @@ export class MoodsService {
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
-    const snapshot = await this.firebaseService.db
-      .collection(this.collection)
-      .where('userId', '==', userId)
-      .get();
-      
-    // Filter by date and sort in memory to avoid needing a composite index
-    let moods = snapshot.docs.map(doc => doc.data());
+    let moods = await this.moodRepository.findByUserId(userId);
     console.log("Total moods found before filter:", moods.length);
     
     moods = moods.filter(m => {
@@ -103,13 +85,10 @@ export class MoodsService {
     };
   }
 
-  async findAll() {
-    const snapshot = await this.firebaseService.db
-      .collection(this.collection)
-      .get();
+  async findAll(limit: number = 50, lastId?: string) {
+    const moods = await this.moodRepository.findAll(limit, lastId);
       
-    return snapshot.docs.map(doc => {
-      const data = doc.data();
+    return moods.map(data => {
       let isoDate = new Date().toISOString();
       try {
         if (data.createdAt) {
@@ -120,7 +99,7 @@ export class MoodsService {
         }
       } catch (e) {
         const message = e instanceof Error ? e.message : String(e);
-        console.error('Error parsing date for record:', doc.id, message);
+        console.error('Error parsing date for record:', data.id, message);
       }
       return { ...data, createdAt: isoDate };
     });

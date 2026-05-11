@@ -10,9 +10,10 @@ export class AnalyticsService {
   ) {}
 
   async getTeamMoodAnalytics() {
+    // Analytics needs all records for accurate calculations
     const [moods, users] = await Promise.all([
-      this.moodsService.findAll(),
-      this.usersService.findAll()
+      this.moodsService.findAll(10000),
+      this.usersService.findAll(10000)
     ]);
 
     const userMap = new Map(users.map(u => [u.id, u]));

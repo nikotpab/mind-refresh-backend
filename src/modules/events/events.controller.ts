@@ -28,9 +28,9 @@ export class EventsController {
 
   @Get()
   @UseGuards(AuthGuard)
-  async getEvents(@Res() res: Response) {
+  async getEvents(@Req() req: any, @Res() res: Response, @Query('limit') limit?: number, @Query('lastId') lastId?: string) {
     try {
-      const result = await this.eventsService.findAll();
+      const result = await this.eventsService.findAll(limit ? Number(limit) : 20, lastId);
       return res.status(200).json(result);
     } catch (error: any) {
       return res.status(500).json({ message: error.message });

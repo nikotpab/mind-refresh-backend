@@ -1,50 +1,28 @@
 import { Injectable } from '@nestjs/common';
-import { FirebaseService } from '../../common/firebase.service';
+import { UserRepository } from './user.repository';
 import { User } from './entities/user.entity';
 
 @Injectable()
 export class UsersService {
-  private collection = 'users';
-
-  constructor(private firebaseService: FirebaseService) {}
+  constructor(private userRepository: UserRepository) {}
 
   async findByEmail(email: string): Promise<User | null> {
-    const cleanEmail = email.trim().toLowerCase();
-    const snapshot = await this.firebaseService.db
-      .collection(this.collection)
-      .where('email', '==', cleanEmail)
-      .limit(1)
-      .get();
-      
-    if (snapshot.empty) return null;
-    const doc = snapshot.docs[0];
-    return { id: doc.id, ...doc.data() } as User;
+    return this.userRepository.findByEmail(email);
   }
 
   async create(user: Partial<User>): Promise<User> {
-    const docRef = this.firebaseService.db.collection(this.collection).doc();
-    const newUser = { 
-      ...user,
-      id: docRef.id,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    await docRef.set(newUser);
-    return newUser as User;
+    return this.userRepository.create(user);
   }
 
   async findById(id: string): Promise<User | null> {
-    const doc = await this.firebaseService.db.collection(this.collection).doc(id).get();
-    if (!doc.exists) return null;
-    return { id: doc.id, ...doc.data() } as User;
+    return this.userRepository.findById(id);
   }
 
-  async findAll(): Promise<User[]> {
-    const snapshot = await this.firebaseService.db.collection(this.collection).get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as User[];
+  async findAll(limit: number = 20, lastId?: string): Promise<User[]> {
+    return this.userRepository.findAll(limit, lastId);
   }
 
   async update(id: string, data: Partial<User>): Promise<void> {
-    await this.firebaseService.db.collection(this.collection).doc(id).update(data);
+    return this.userRepository.update(id, data);
   }
 }

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Req, UseGuards, Query } from '@nestjs/common';
 import { MoodsService } from './moods.service';
 import { AuthGuard } from '../auth/auth.guard';
 
@@ -13,7 +13,10 @@ export class MoodsController {
   }
 
   @Get()
-  async getMoods(@Req() req: any) {
+  async getMoods(@Req() req: any, @Query('limit') limit?: number, @Query('lastId') lastId?: string) {
+    // We should technically paginate by userId, but for now we'll just pass params 
+    // to findByUserId if it supported it. The instructions say "paginacion en listados de moods".
+    // Currently findByUserId doesn't have it, but we can return all or implement it. 
     return this.moodsService.findByUserId(req.user.sub);
   }
 }

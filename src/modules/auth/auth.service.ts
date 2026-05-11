@@ -29,6 +29,7 @@ export class AuthService {
     };
     return {
       access_token: this.jwtService.sign(payload),
+      refresh_token: this.jwtService.sign(payload, { expiresIn: '7d' }),
       user: {
         id: user.id,
         email: user.email,
@@ -38,6 +39,21 @@ export class AuthService {
         photoUrl: user.photoUrl || '/default-avatar.png',
       },
     };
+  }
+
+  async refreshToken(token: string) {
+    try {
+      const payload = this.jwtService.verify(token);
+      return this.login({
+        id: payload.sub,
+        email: payload.email,
+        name: payload.name,
+        role: payload.role,
+        department: payload.department,
+      });
+    } catch (e) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
   }
 
   async register(data: any) {

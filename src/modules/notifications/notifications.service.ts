@@ -1,25 +1,18 @@
 import { Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
-import { FirebaseService } from '../../common/firebase.service';
+import { NotificationRepository } from './notification.repository';
 import { NotificationsGateway } from './notifications.gateway';
 import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class NotificationsService {
-  private collection = 'notifications';
-
   constructor(
-    private firebaseService: FirebaseService,
+    private notificationRepository: NotificationRepository,
     private notificationsGateway: NotificationsGateway,
     private usersService: UsersService,
   ) {}
 
   async getNotifications(userId: string) {
-    const snapshot = await this.firebaseService.db
-      .collection(this.collection)
-      .where('userId', '==', userId)
-      .get();
-
-    let docs = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const docs = await this.notificationRepository.findByUserId(userId);
 
     const parseDate = (date: any) => {
       if (!date) return 0;
@@ -36,26 +29,19 @@ export class NotificationsService {
   }
 
   async markAsRead(notificationId: string) {
-    await this.firebaseService.db
-      .collection(this.collection)
-      .doc(notificationId)
-      .update({ read: true });
+    await this.notificationRepository.markAsRead(notificationId);
     return { success: true };
   }
 
   async create(userId: string, data: any) {
-    const docRef = this.firebaseService.db.collection(this.collection).doc();
-    const notification = {
-      id: docRef.id,
+    const notification = await this.notificationRepository.create({
       userId,
       title: data.title,
       message: data.message,
       type: data.type || 'GENERAL',
       read: false,
-      createdAt: new Date(),
       senderName: data.senderName || null,
-    };
-    await docRef.set(notification);
+    });
 
     // Real-time notification
     this.notificationsGateway.sendNotificationToUser(userId, notification);
@@ -88,19 +74,14 @@ export class NotificationsService {
       }
 
       const sender = await this.usersService.findById(senderId);
-      const docRef = this.firebaseService.db.collection(this.collection).doc();
 
-      const notification = {
-        id: docRef.id,
+      const notification = await this.notificationRepository.create({
         userId: recipient.id,
         title: title,
         message: `${sender?.name || 'Un compañero'} te ha enviado una frase: "${quote}"`,
         type: 'QUOTE_SHARED',
         read: false,
-        createdAt: new Date(),
-      };
-
-      await docRef.set(notification);
+      });
 
       // Enviar via Socket.io para actualización en tiempo real
       this.notificationsGateway.sendNotificationToUser(
