@@ -9,9 +9,10 @@ export class UsersService {
   constructor(private firebaseService: FirebaseService) {}
 
   async findByEmail(email: string): Promise<User | null> {
+    const cleanEmail = email.trim().toLowerCase();
     const snapshot = await this.firebaseService.db
       .collection(this.collection)
-      .where('email', '==', email)
+      .where('email', '==', cleanEmail)
       .limit(1)
       .get();
       
